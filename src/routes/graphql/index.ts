@@ -48,6 +48,13 @@ const UserType = new GraphQLObjectType({
           return users;
         },
       },
+      posts: {
+        type: new GraphQLList(PostType),
+        async resolve() {
+          const posts = await prisma.post.findMany();
+          return posts;
+        },
+      }
     }),
   });
 
