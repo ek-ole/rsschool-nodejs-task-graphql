@@ -23,31 +23,40 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
     }),
   });
 
-    const ProfileType = new GraphQLObjectType({
-      name: 'Profile',
-      fields: () => ({
-        id: { type: GraphQLString },
-        isMale: { type: GraphQLBoolean },
-        yearOfBirth: { type: GraphQLInt },
-      }),
-    });
+  const ProfileType = new GraphQLObjectType({
+    name: 'Profile',
+    fields: () => ({
+      id: { type: GraphQLString },
+      isMale: { type: GraphQLBoolean },
+      yearOfBirth: { type: GraphQLInt },
+    }),
+  });
 
-const UserType = new GraphQLObjectType({
-  name: 'User',
-  fields: () => ({
-    id: { type: GraphQLString },
-    name: { type: GraphQLString },
-    balance: { type: GraphQLFloat },
-    posts: {
-      type: new GraphQLList(PostType),
-      async resolve(parent: { id: string }) {
-        return prisma.post.findMany({
-          where: { authorId: parent.id },
-        });
+  const MemberTypeType = new GraphQLObjectType({
+    name: 'MemberType',
+    fields: () => ({
+      id: { type: GraphQLString },
+      discount: { type: GraphQLFloat },
+      postsLimitPerMonth: { type: GraphQLInt },
+    }),
+  });
+
+  const UserType = new GraphQLObjectType({
+    name: 'User',
+    fields: () => ({
+      id: { type: GraphQLString },
+      name: { type: GraphQLString },
+      balance: { type: GraphQLFloat },
+      posts: {
+        type: new GraphQLList(PostType),
+        async resolve(parent: { id: string }) {
+          return prisma.post.findMany({
+            where: { authorId: parent.id },
+          });
+        },
       },
-    },
-  }),
-});
+    }),
+  });
 
   const RootQueryType = new GraphQLObjectType({
     name: 'RootQueryType',
@@ -72,7 +81,14 @@ const UserType = new GraphQLObjectType({
           const profiles = await prisma.profile.findMany();
           return profiles;
         },
-      }
+      },
+      memberTypes: {
+        type: new GraphQLList(MemberTypeType),
+        async resolve() {
+          const memberTypes = await prisma.memberType.findMany();
+          return memberTypes;
+        },
+      },
     }),
   });
 
