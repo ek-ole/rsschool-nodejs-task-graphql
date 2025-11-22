@@ -12,14 +12,31 @@ import {
 const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
   const { prisma } = fastify;
 
-  const UserType = new GraphQLObjectType({
-    name: 'User',
+  const PostType = new GraphQLObjectType({
+    name: 'Post',
     fields: () => ({
       id: { type: GraphQLString },
-      name: { type: GraphQLString },
-      balance: { type: GraphQLFloat },
+      title: { type: GraphQLString },
+      content: { type: GraphQLString },
     }),
   });
+
+const UserType = new GraphQLObjectType({
+  name: 'User',
+  fields: () => ({
+    id: { type: GraphQLString },
+    name: { type: GraphQLString },
+    balance: { type: GraphQLFloat },
+    posts: {
+      type: new GraphQLList(PostType),
+      async resolve(parent: { id: string }) {
+        return prisma.post.findMany({
+          where: { authorId: parent.id },
+        });
+      },
+    },
+  }),
+});
 
   const RootQueryType = new GraphQLObjectType({
     name: 'RootQueryType',
