@@ -2,11 +2,13 @@ import { FastifyPluginAsyncTypebox } from '@fastify/type-provider-typebox';
 import { createGqlResponseSchema, gqlResponseSchema } from './schemas.js';
 import {
   graphql,
+  GraphQLBoolean,
   GraphQLFloat,
   GraphQLList,
   GraphQLObjectType,
   GraphQLSchema,
   GraphQLString,
+  GraphQLInt,
 } from 'graphql';
 
 const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
@@ -20,6 +22,15 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
       content: { type: GraphQLString },
     }),
   });
+
+    const ProfileType = new GraphQLObjectType({
+      name: 'Profile',
+      fields: () => ({
+        id: { type: GraphQLString },
+        isMale: { type: GraphQLBoolean },
+        yearOfBirth: { type: GraphQLInt },
+      }),
+    });
 
 const UserType = new GraphQLObjectType({
   name: 'User',
@@ -53,6 +64,13 @@ const UserType = new GraphQLObjectType({
         async resolve() {
           const posts = await prisma.post.findMany();
           return posts;
+        },
+      },
+      profiles: {
+        type: new GraphQLList(ProfileType),
+        async resolve() {
+          const profiles = await prisma.profile.findMany();
+          return profiles;
         },
       }
     }),
