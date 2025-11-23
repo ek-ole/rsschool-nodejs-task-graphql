@@ -9,6 +9,7 @@ import {
   GraphQLSchema,
   GraphQLString,
   GraphQLInt,
+  GraphQLEnumType,
 } from 'graphql';
 import { UUIDType } from './types/uuid.js';
 
@@ -40,6 +41,14 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
       discount: { type: GraphQLFloat },
       postsLimitPerMonth: { type: GraphQLInt },
     }),
+  });
+
+  const MemberTypeIDType = new GraphQLEnumType({
+    name: 'MemberTypeID',
+    values: {
+      BASIC: { value: 'BASIC'},
+      BUSINESS: { value: 'BUSINESS'}
+    },
   });
 
   const UserType = new GraphQLObjectType({
@@ -97,6 +106,39 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
         },
         async resolve(_, { id }: { id: string }) {
           return prisma.user.findUnique({
+            where: { id },
+          });
+        },
+      },
+      post: {
+        type: PostType,
+        args: {
+          id: { type: UUIDType },
+        },
+        async resolve(_, { id }: { id: string }) {
+          return prisma.post.findUnique({
+            where: { id },
+          });
+        },
+      },
+      profile: {
+        type: ProfileType,
+        args: {
+          id: { type: UUIDType },
+        },
+        async resolve(_, { id }: { id: string }) {
+          return prisma.profile.findUnique({
+            where: { id },
+          });
+        },
+      },
+      memberType: {
+        type: MemberTypeType,
+        args: {
+          id: { type: MemberTypeIDType },
+        },
+        async resolve(_, { id }: { id: string }) {
+          return prisma.memberType.findUnique({
             where: { id },
           });
         },
