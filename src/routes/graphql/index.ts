@@ -10,6 +10,7 @@ import {
   GraphQLString,
   GraphQLInt,
   GraphQLEnumType,
+  GraphQLInputObjectType,
 } from 'graphql';
 import { UUIDType } from './types/uuid.js';
 
@@ -183,8 +184,169 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
     }),
   });
 
+  const MutationType = new GraphQLObjectType({
+    name: 'Mutations',
+    fields: () => ({
+      createUser: {
+        type: UserType,
+        args: {
+          dto: {
+            type: new GraphQLInputObjectType({
+              name: 'CreateUserInput',
+              fields: () => ({
+                name: { type: GraphQLString },
+                balance: { type: GraphQLFloat },
+              }),
+            }),
+          },
+        },
+        async resolve(_, { dto }: { dto: { name: string; balance: number } }) {
+          return prisma.user.create({
+            data: dto,
+          });
+        },
+      },
+      createPost: {
+        type: PostType,
+        args: {
+          dto: {
+            type: new GraphQLInputObjectType({
+              name: 'CreatePostInput',
+              fields: () => ({
+                title: { type: GraphQLString },
+                content: { type: GraphQLString },
+                authorId: { type: UUIDType },
+              }),
+            }),
+          },
+        },
+        async resolve(
+          _,
+          { dto }: { dto: { title: string; content: string; authorId: string } },
+        ) {
+          return prisma.post.create({
+            data: dto,
+          });
+        },
+      },
+      createProfile: {
+        type: ProfileType,
+        args: {
+          dto: {
+            type: new GraphQLInputObjectType({
+              name: 'CreateProfileInput',
+              fields: () => ({
+                isMale: { type: GraphQLBoolean },
+                yearOfBirth: { type: GraphQLInt },
+                userId: { type: UUIDType },
+                memberTypeId: { type: MemberTypeIdType },
+              }),
+            }),
+          },
+        },
+        async resolve(
+          _,
+          {
+            dto,
+          }: {
+            dto: {
+              isMale: boolean;
+              yearOfBirth: number;
+              userId: string;
+              memberTypeId: string;
+            };
+          },
+        ) {
+          return prisma.profile.create({
+            data: dto,
+          });
+        },
+      },
+      changeUser: {
+        type: UserType,
+        args: {
+          id: { type: UUIDType },
+          dto: {
+            type: new GraphQLInputObjectType({
+              name: 'ChangeUserInput',
+              fields: () => ({
+                name: { type: GraphQLString },
+                balance: { type: GraphQLFloat },
+              }),
+            }),
+          },
+        },
+        async resolve(
+          _: unknown,
+          { id, dto }: { id: string; dto: { name?: string; balance?: number } },
+        ) {
+          return prisma.user.update({
+            where: { id },
+            data: dto,
+          });
+        },
+      },
+      changePost: {
+        type: PostType,
+        args: {
+          id: { type: UUIDType },
+          dto: {
+            type: new GraphQLInputObjectType({
+              name: 'ChangePostInput',
+              fields: () => ({
+                title: { type: GraphQLString },
+                content: { type: GraphQLString },
+              }),
+            }),
+          },
+        },
+        async resolve(
+          _: unknown,
+          { id, dto }: { id: string; dto: { title?: string; content?: string } },
+        ) {
+          return prisma.post.update({
+            where: { id },
+            data: dto,
+          });
+        },
+      },
+      changeProfile: {
+        type: ProfileType,
+        args: {
+          id: { type: UUIDType },
+          dto: {
+            type: new GraphQLInputObjectType({
+              name: 'ChangeProfileInput',
+              fields: () => ({
+                isMale: { type: GraphQLBoolean },
+                yearOfBirth: { type: GraphQLInt },
+                memberTypeId: { type: MemberTypeIdType },
+              }),
+            }),
+          },
+        },
+        async resolve(
+          _: unknown,
+          {
+            id,
+            dto,
+          }: {
+            id: string;
+            dto: { isMale?: boolean; yearOfBirth?: number; memberTypeId?: string };
+          },
+        ) {
+          return prisma.profile.update({
+            where: { id },
+            data: dto,
+          });
+        },
+      },
+    }),
+  });
+
   const schema = new GraphQLSchema({
     query: RootQueryType,
+    mutation: MutationType,
   });
 
   fastify.route({
