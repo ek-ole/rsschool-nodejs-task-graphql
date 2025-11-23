@@ -25,15 +25,6 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
     }),
   });
 
-  const ProfileType = new GraphQLObjectType({
-    name: 'Profile',
-    fields: () => ({
-      id: { type: GraphQLString },
-      isMale: { type: GraphQLBoolean },
-      yearOfBirth: { type: GraphQLInt },
-    }),
-  });
-
   const MemberTypeType = new GraphQLObjectType({
     name: 'MemberType',
     fields: () => ({
@@ -43,15 +34,33 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
     }),
   });
 
-  const MemberTypeIDType = new GraphQLEnumType({
-    name: 'MemberTypeID',
+  const MemberTypeIdType = new GraphQLEnumType({
+    name: 'MemberTypeId',
     values: {
       BASIC: { value: 'BASIC'},
       BUSINESS: { value: 'BUSINESS'}
     },
+  });  
+
+  const ProfileType = new GraphQLObjectType({
+    name: 'Profile',
+    fields: () => ({
+      id: { type: GraphQLString },
+      isMale: { type: GraphQLBoolean },
+      yearOfBirth: { type: GraphQLInt },
+      memberType: {
+        type: MemberTypeType,
+        async resolve(parent: { memberTypeId: string }) {
+          if (!parent.memberTypeId) return null;
+          return prisma.memberType.findUnique({
+            where: { id: parent.memberTypeId },
+          });
+        },
+      },
+    }),
   });
 
-  const UserType = new GraphQLObjectType({
+  const UserType: GraphQLObjectType = new GraphQLObjectType({
     name: 'User',
     fields: () => ({
       id: { type: GraphQLString },
@@ -63,6 +72,34 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
           return prisma.post.findMany({
             where: { authorId: parent.id },
           });
+        },
+      },
+      profile: {
+        type: ProfileType,
+        async resolve(parent: { id: string }) {
+          return prisma.profile.findUnique({
+            where: { userId: parent.id },
+          });
+        },
+      },
+      userSubscribedTo: {
+        type: new GraphQLList(UserType),
+        async resolve(parent: { id: string }) {
+          const subscriptions = await prisma.subscribersOnAuthors.findMany({
+            where: { subscriberId: parent.id },
+            include: { author: true },
+          });
+          return subscriptions.map((sub) => sub.author);
+        },
+      },
+      subscribedToUser: {
+        type: new GraphQLList(UserType),
+        async resolve(parent: { id: string }) {
+          const subscribers = await prisma.subscribersOnAuthors.findMany({
+            where: { authorId: parent.id },
+            include: { subscriber: true },
+          });
+          return subscribers.map((sub) => sub.subscriber);
         },
       },
     }),
@@ -135,7 +172,7 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
       memberType: {
         type: MemberTypeType,
         args: {
-          id: { type: MemberTypeIDType },
+          id: { type: MemberTypeIdType },
         },
         async resolve(_, { id }: { id: string }) {
           return prisma.memberType.findUnique({
