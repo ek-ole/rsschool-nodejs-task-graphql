@@ -11,8 +11,11 @@ import {
   GraphQLInt,
   GraphQLEnumType,
   GraphQLInputObjectType,
+  validate,
+  parse,
 } from 'graphql';
 import { UUIDType } from './types/uuid.js';
+import depthLimit from 'graphql-depth-limit';
 
 const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
   const { prisma } = fastify;
@@ -430,6 +433,13 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
     },
     async handler(req) {
       console.log('GraphQL query:', req.body.query);
+      const validationRules = [depthLimit(5)];
+      const ast = parse(req.body.query);
+      const validationErrors = validate(schema, ast, validationRules);
+      if (validationErrors.length > 0) {
+        return { errors: validationErrors }
+      }
+
       const result = await graphql({
         schema,
         source: req.body.query,
