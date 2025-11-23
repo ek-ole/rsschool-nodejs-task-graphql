@@ -13,11 +13,13 @@ import {
   GraphQLInputObjectType,
   validate,
   parse,
+  GraphQLResolveInfo,
 } from 'graphql';
 import { UUIDType } from './types/uuid.js';
 import depthLimit from 'graphql-depth-limit';
 import DataLoader from 'dataloader';
-import { MemberType, Post, Profile, User } from '@prisma/client';
+import { MemberType, Post, Prisma, Profile, User } from '@prisma/client';
+import { parseResolveInfo, ResolveTree } from 'graphql-parse-resolve-info';
 
 interface GraphQLContext {
   postsLoader: DataLoader<string, Post[]>;
@@ -193,8 +195,33 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
         fields: () => ({
           users: {
             type: new GraphQLList(UserType),
-            async resolve() {
-              const users = await prisma.user.findMany();
+            async resolve(_parent, _args, context, info: GraphQLResolveInfo) {
+              const parsedInfo = parseResolveInfo(info);
+
+               const fieldsRaw: unknown = parsedInfo?.fieldsByTypeName?.User ?? {};
+
+              const fields =
+                fieldsRaw && typeof fieldsRaw === 'object'
+                  ? (fieldsRaw as Record<string, ResolveTree>)
+                  : {};
+
+              const needUserSubscribedTo = Object.prototype.hasOwnProperty.call(
+                fields,
+                'userSubscribedTo',
+              );
+
+              const needSubscribedToUser = Object.prototype.hasOwnProperty.call(
+                fields,
+                'subscribedToUser',
+              );
+
+              const include: Partial<Prisma.UserInclude> = {};
+
+              if (needUserSubscribedTo) include.userSubscribedTo = true;
+              if (needSubscribedToUser) include.subscribedToUser = true;
+
+              const users = await prisma.user.findMany({ include });
+
               return users;
             },
           },
