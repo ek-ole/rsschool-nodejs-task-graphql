@@ -10,6 +10,7 @@ import {
   GraphQLString,
   GraphQLInt,
 } from 'graphql';
+import { UUIDType } from './types/uuid.js';
 
 const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
   const { prisma } = fastify;
@@ -87,6 +88,17 @@ const plugin: FastifyPluginAsyncTypebox = async (fastify) => {
         async resolve() {
           const memberTypes = await prisma.memberType.findMany();
           return memberTypes;
+        },
+      },
+      user: {
+        type: UserType,
+        args: {
+          id: { type: UUIDType },
+        },
+        async resolve(_, { id }: { id: string }) {
+          return prisma.user.findUnique({
+            where: { id },
+          });
         },
       },
     }),
